@@ -2,32 +2,47 @@ import { useEffect, useRef, useState } from 'react';
 
 export default function App() {
   const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
+  const [data, setData] = useState(null);
+  const [startTime, setStartTime] = useState(null);
 
   useEffect(() => {
-    const start = performance.now();
+    const fetchData = async () => {
+      const start = performance.now();
+      setStartTime(start);
+
+      const res = await fetch('http://localhost:3000/api/data');
+      const json = await res.json();
+
+      setData(json);
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (!ref.current) return;
 
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        const ttv = performance.now() - start;
-        console.log('TTV (ms):', ttv);
-        setVisible(true);
-
-        fetch('http://localhost:3000/api/data')
-          .then(res => res.json())
-          .then(console.log);
+        const visibleTime = performance.now();
+        console.log(
+          'Time to Visible (ms):',
+          (visibleTime - startTime).toFixed(2)
+        );
       }
     });
 
-    if (ref.current) observer.observe(ref.current);
+    observer.observe(ref.current);
+
     return () => observer.disconnect();
-  }, []);
+  }, [data]);
 
   return (
-    <div style={{ height: '150vh', padding: '20px' }}>
-      <h1>Scroll Down</h1>
-      <div style={{ marginTop: '120vh' }} ref={ref}>
-        👀 Target Element (Visible: {visible ? 'Yes' : 'No'})
+    <div style={{ height: '200vh', paddingTop: '120vh' }}>
+      <h1>Scroll down to reveal data</h1>
+
+      <div ref={ref} style={{ fontSize: '24px', fontWeight: 'bold' }}>
+        {data ? JSON.stringify(data) : 'Loading...'}
       </div>
     </div>
   );
